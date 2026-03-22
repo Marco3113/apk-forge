@@ -1,0 +1,51 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main  # ✏️ CHANGE THIS: target branch that triggers the build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    env:
+      APP_MODULE: app          # ✏️ CHANGE THIS: Gradle module name (e.g. app, wear, core)
+      # FLAVOR: production     # ✏️ CHANGE THIS: uncomment & set product flavor (e.g. free, paid, staging)
+      BUILD_TYPE: release      # ✏️ CHANGE THIS: build type (debug | release)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'   # ✏️ CHANGE THIS: Java version required by your project (11, 17, 21)
+          distribution: 'temurin'
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Build APK
+        run: ./gradlew :${{ env.APP_MODULE }}:assemble${{ env.BUILD_TYPE }}
+        # ✏️ CHANGE THIS: if you use flavors, change to:
+        # ./gradlew :${{ env.APP_MODULE }}:assemble${{ env.FLAVOR }}${{ env.BUILD_TYPE }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUILD_TYPE }}-apk  # ✏️ CHANGE THIS: artifact name
+          path: ${{ env.APP_MODULE }}/build/outputs/apk/${{ env.BUILD_TYPE }}/*.apk
+          # ✏️ CHANGE THIS: if using flavors → path: app/build/outputs/apk/${{ env.FLAVOR }}/${{ env.BUILD_TYPE }}/*.apk
+          retention-days: 7    # ✏️ CHANGE THIS: how long to keep the artifact (1-90)
+
+      # ✏️ CHANGE THIS: uncomment this block if you need APK signing
+      # - name: Sign APK
+      #   uses: r0adkll/sign-android-release@v1
+      #   with:
+      #     releaseDirectory: ${{ env.APP_MODULE }}/build/outputs/apk/${{ env.BUILD_TYPE }}
+      #     signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+      #     alias: ${{ secrets.KEY_ALIAS }}
+      #     keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+      #     keyPassword: ${{ secrets.KEY_PASSWORD }}
